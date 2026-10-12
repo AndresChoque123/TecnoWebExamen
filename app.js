@@ -63,12 +63,7 @@ themeToggle.addEventListener('click', () => {
 
 cargarTema();
 //punto uno
-const obtenerSeries = async () => {
-    const url = `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=es-ES`;
-    const respuesta = await fetch(url);
-    const datos = await respuesta.json();
-    return datos.results;
-};
+
 //punto dos
 const crearTarjeta = (serie) => {
     const { id, name, first_air_date, vote_average, poster_path } = serie;
@@ -87,29 +82,6 @@ const crearTarjeta = (serie) => {
             </div>
         </article>`;
 };
-
-const iniciar = async () => {
-    console.log('Cargando series populares...');
-    mostrarLoading();
-    try {
-        const series = await obtenerSeries();
-        console.log(`${series.length} series obtenidas`);
-        ocultarLoading();
-        seriesGrid.innerHTML = series.map(crearTarjeta).join('');
-        console.log('Series renderizadas correctamente');
-    } catch (error) {
-        console.log('Error:', error);
-        let mensaje = 'No se pudieron cargar las series';
-        if (error.message.includes('401')) {
-            mensaje = 'API Key inválida, verifica tu clave';
-        }else if (error.message.includes('fetch')) {
-            mensaje = 'Error de conexion. Verifica tu conexión';
-        }
-        mostrarError(mensaje);
-    }
-};
-
-iniciar();
 //tercer punto
 const buscarSeries = async (texto) => {
     const busqueda = texto.trim();
@@ -202,3 +174,33 @@ seriesGrid.addEventListener('click', (e) => {
 if (modalClose) modalClose.addEventListener('click', cerrarModal);
 if (modalOverlay) modalOverlay.addEventListener('click', cerrarModal);
 
+//quinto punto
+const obtenerSeriesConManejoError = async () => {
+    const url = `${BASE_URL}/tv/popular?api_key=${API_KEY}&language=es-ES`;
+    const respuesta = await fetch(url);
+    if (!respuesta.ok) {
+        throw new Error(`Error ${respuesta.status}`);
+    }
+    const datos = await respuesta.json();
+    return datos.results;
+};
+const iniciarConManejoError = async () => {
+    mostrarLoading();
+    try {
+        const series = await obtenerSeriesConManejoError();
+        ocultarLoading();
+        seriesGrid.innerHTML = series.map(crearTarjeta).join('');
+    } catch (error) {
+        console.log('Ocurrió un error:', error);
+        let mensaje = 'No se pudieron cargar las series';
+        if (error.message.includes('401')) {
+            mensaje = 'API Key inválida, verifica tu clave';
+        } else if (error.message.includes('fetch') || error.name === 'TypeError') {
+            mensaje = 'Error de red. Verifica tu conexión';
+        } else if (error.message.includes('429')) {
+            mensaje = 'Existen demasiadas peticiones, espere un momento';
+        }
+        mostrarError(mensaje);
+    }
+};
+iniciarConManejoError();
