@@ -147,3 +147,58 @@ if (clearBtn) {
         iniciar();
     });
 }
+//cuarto punto
+const abrirModal = () => {
+    if (modal) modal.style.display = 'flex';
+    if (modalOverlay) modalOverlay.style.display = 'block';
+};
+const cerrarModal = () => {
+    if (modal) modal.style.display = 'none';
+    if (modalOverlay) modalOverlay.style.display = 'none';
+};
+const cargarDetalleSerie = async (id) => {
+    if (modalBody) modalBody.innerHTML = '<p>Cargando detalles...</p>';
+    abrirModal();
+    try {
+        const url = `${BASE_URL}/tv/${id}?api_key=${API_KEY}&language=es-ES`;
+        const respuesta = await fetch(url);
+        if (!respuesta.ok) {
+            throw new Error(`Error ${respuesta.status}`);
+        }
+        const detalle = await respuesta.json();
+        const { name, overview, number_of_seasons, number_of_episodes, genres, status, poster_path } = detalle;
+        const imagen = poster_path ? `${IMAGE_URL}${poster_path}` : '';
+        const listaGeneros = genres && genres.length > 0 ? genres.map(g => g.name).join(', ') : 'Sin especificación';
+        modalBody.innerHTML = `
+            <div class="modal-detalle">
+                ${imagen ? `<img src="${imagen}" alt="${name}  "`: ''}
+                <h2>${name}</h2>
+                <p><strong>Estatus:</strong> ${status || 'N/A'}</p>
+                <p><strong>Sinopsis:</strong> ${overview || 'Sinopsis no disponible en español para esta serie.'}</p>
+                <p><strong>Temporadas:</strong> ${number_of_seasons}</p>
+                <p><strong>Episodios:</strong> ${number_of_episodes}</p>
+                <p><strong>Géneros:</strong> ${listaGeneros}</p>
+            </div>
+        `;
+    } catch (error) {
+        console.log('Error en detalle:', error);
+        if (modalBody) {
+            let mensaje = 'No se pudo cargar el detalle';
+            if (error.message.includes('401')) {
+                mensaje = 'API Key inválida, verifica tu clave';
+            } else if (error.message.includes('fetch')) {
+                mensaje = 'Error de conexion. Verifica tu conexión';
+            }
+            modalBody.innerHTML = `<p>${mensaje}</p>`;
+        }
+    }
+};
+seriesGrid.addEventListener('click', (e) => {
+    const tarjeta = e.target.closest('.serie-card');
+    if (tarjeta && tarjeta.dataset.id) {
+        cargarDetalleSerie(tarjeta.dataset.id);
+    }
+});
+if (modalClose) modalClose.addEventListener('click', cerrarModal);
+if (modalOverlay) modalOverlay.addEventListener('click', cerrarModal);
+
