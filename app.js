@@ -91,7 +91,6 @@ const crearTarjeta = (serie) => {
 const iniciar = async () => {
     console.log('Cargando series populares...');
     mostrarLoading();
-
     try {
         const series = await obtenerSeries();
         console.log(`${series.length} series obtenidas`);
@@ -111,3 +110,40 @@ const iniciar = async () => {
 };
 
 iniciar();
+//tercer punto
+const buscarSeries = async (texto) => {
+    const busqueda = texto.trim();
+    if (busqueda === '') {
+        iniciar();
+        return;
+    }
+    mostrarLoading();
+    try {
+        const url = `${BASE_URL}/search/tv?api_key=${API_KEY}&language=es-ES&query=${encodeURIComponent(busqueda)}`;
+        const respuesta = await fetch(url);
+        const datos = await respuesta.json();
+        const series = datos.results;
+        ocultarLoading();
+        seriesGrid.innerHTML = series.map(crearTarjeta).join('');
+    } catch (error) {
+        console.log('Error en búsqueda:', error);
+        let mensaje = 'Error al realizar la búsqueda';
+        if (error.message.includes('401')) {
+            mensaje = 'API Key inválida, verifica tu clave';
+        } else if (error.message.includes('fetch')) {
+            mensaje = 'Error de conexion. Verificar tu conexión';
+        }
+        mostrarError(mensaje);
+    }
+};
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        buscarSeries(e.target.value);
+    });
+}
+if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        iniciar();
+    });
+}
